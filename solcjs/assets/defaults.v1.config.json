@@ -1,0 +1,12 @@
+{
+  "defaultCompileVersion":"latest",
+  "solcjsNodeModulePath":{
+    "darwin":"",
+    "linux":"/usr/local/lib/node_modules/solc",
+    "win32":""
+  },
+"compilationScript":"default",
+"soljsonVersionsDir":"/usr/local/lib/soljson_versions",
+"inputFile":"/tmp/py_solcj_input.json",
+"outputFile":"/tmp/py_solcj_output.json"
+}

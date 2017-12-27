@@ -12,12 +12,39 @@ from .utils.string import (
 )
 
 
-def get_solc_binary_path():
-    return os.environ.get('SOLC_BINARY', 'solc')
+def get_solcjs_binary_path():
+    return os.environ.get('SOLC_BINARY', 'solcjs')
+
+
+def get_node_binary_path():
+    return os.environ.get('NODE_BINARY', 'node')
+
+
+def solc_default_version():
+    solc_binary = get_solcjs_binary_path()
+    command = [solc_binary]
+    command.append('--version')
+
+    proc = subprocess.Popen(command,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
+
+    stdoutdata, stderrdata = proc.communicate()
+
+    if proc.returncode != 0:
+        raise SolcError(
+            command=command,
+            return_code=proc.returncode,
+            stdin_data=stdin,
+            stdout_data=stdoutdata,
+            stderr_data=stderrdata,
+        )
+
+    return stdoutdata, stderrdata, command, proc
 
 
 @coerce_return_to_text
-def solc_wrapper(solc_binary=None,
+def solc_wrapper(node_binary=None,
                  stdin=None,
                  help=None,
                  version=None,
@@ -50,7 +77,7 @@ def solc_wrapper(solc_binary=None,
                  standard_json=None,
                  success_return_code=0):
     if solc_binary is None:
-        solc_binary = get_solc_binary_path()
+        solc_binary = get_solcjs_binary_path()
 
     command = [solc_binary]
 

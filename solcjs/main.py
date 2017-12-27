@@ -13,7 +13,8 @@ from .utils.filesystem import (
     is_executable_available,
 )
 from .wrapper import (
-    get_solc_binary_path,
+    get_solcjs_binary_path,
+    solc_default_version,
     solc_wrapper,
 )
 
@@ -26,33 +27,18 @@ strip_zeroes_from_month_and_day = functools.partial(VERSION_DEV_DATE_MANGLER_RE.
 
 
 def is_solc_available():
-    solc_binary = get_solc_binary_path()
+    solc_binary = get_solcjs_binary_path()
     return is_executable_available(solc_binary)
 
 
 def get_solc_version_string(**kwargs):
-    kwargs['version'] = True
-    stdoutdata, stderrdata, command, proc = solc_wrapper(**kwargs)
-    _, _, version_string = stdoutdata.partition('\n')
-    if not version_string or not version_string.startswith('Version: '):
-        raise SolcError(
-            command=command,
-            return_code=proc.returncode,
-            stdin_data=None,
-            stdout_data=stdoutdata,
-            stderr_data=stderrdata,
-            message="Unable to extract version string from command output",
-        )
-    return version_string
-
+    output_version = solc_default_version()
+    return output_version[0].decode('utf-8')
 
 def get_solc_version(**kwargs):
     # semantic_version as of 2017-5-5 expects only one + to be used in string
-    return semantic_version.Version(
-        strip_zeroes_from_month_and_day(
-            get_solc_version_string(**kwargs)
-            [len('Version: '):]
-            .replace('++', 'pp')))
+    version_string = get_solc_version_string()
+    return semantic_version.Version(version_string[:version_string.find("+")])
 
 
 def solc_supports_standard_json_interface(**kwargs):
