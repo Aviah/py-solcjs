@@ -35,6 +35,7 @@ def get_solc_version_string(**kwargs):
     output_version = solc_default_version()
     return output_version[0].decode('utf-8')
 
+
 def get_solc_version(**kwargs):
     # semantic_version as of 2017-5-5 expects only one + to be used in string
     version_string = get_solc_version_string()
@@ -142,12 +143,11 @@ def compile_standard(input_data, allow_empty=False, **kwargs):
         )
 
     stdoutdata, stderrdata, command, proc = solc_wrapper(
-        stdin=json.dumps(input_data),
-        standard_json=True,
+        stdin=input_data,
         **kwargs
     )
 
-    compiler_output = json.loads(stdoutdata)
+    compiler_output = json.loads(stdoutdata.decode('utf-8'))
     if 'errors' in compiler_output:
         has_errors = any(error['severity'] == 'error' for error in compiler_output['errors'])
         if has_errors:

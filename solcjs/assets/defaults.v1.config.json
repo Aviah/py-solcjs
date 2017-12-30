@@ -1,5 +1,6 @@
 {
-  "defaultCompileVersion":"latest",
+  "defaultCompilationVersion":"0.4.17",
+
   "solcjsNodeModulePath":{
     "darwin":"",
     "linux":"/usr/local/lib/node_modules/solc",

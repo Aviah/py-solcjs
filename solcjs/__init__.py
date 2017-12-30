@@ -18,7 +18,6 @@ from .main import (  # noqa: F401
 from .install import (  # noqa: F401
     install_solc,
 )
-
 if sys.version_info.major < 3:
     warnings.simplefilter('always', DeprecationWarning)
     warnings.warn(DeprecationWarning(

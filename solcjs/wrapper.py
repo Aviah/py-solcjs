@@ -1,13 +1,19 @@
 from __future__ import absolute_import
 
+import json
 import os
 import subprocess
 
 from .exceptions import (
     SolcError,
 )
+
+from .config.defaults import (
+    get_compile_script_path,
+    load_config,
+)
+
 from .utils.string import (
-    force_bytes,
     coerce_return_to_text,
 )
 
@@ -21,6 +27,7 @@ def get_node_binary_path():
 
 
 def solc_default_version():
+    # the node module installed version
     solc_binary = get_solcjs_binary_path()
     command = [solc_binary]
     command.append('--version')
@@ -35,7 +42,6 @@ def solc_default_version():
         raise SolcError(
             command=command,
             return_code=proc.returncode,
-            stdin_data=stdin,
             stdout_data=stdoutdata,
             stderr_data=stderrdata,
         )
@@ -43,153 +49,54 @@ def solc_default_version():
     return stdoutdata, stderrdata, command, proc
 
 
-@coerce_return_to_text
-def solc_wrapper(node_binary=None,
-                 stdin=None,
-                 help=None,
-                 version=None,
-                 add_std=None,
-                 combined_json=None,
-                 optimize=None,
-                 optimize_runs=None,
-                 libraries=None,
-                 output_dir=None,
-                 gas=None,
-                 assemble=None,
-                 link=None,
-                 source_files=None,
-                 import_remappings=None,
-                 ast=None,
-                 ast_json=None,
-                 asm=None,
-                 asm_json=None,
-                 opcodes=None,
-                 bin=None,
-                 bin_runtime=None,
-                 clone_bin=None,
-                 abi=None,
-                 interface=None,
-                 hashes=None,
-                 userdoc=None,
-                 devdoc=None,
-                 formal=None,
-                 allow_paths=None,
-                 standard_json=None,
+#@coerce_return_to_text
+def solc_wrapper(stdin,
+                 node_binary=None,
+                 compilation_version=None,
+                 input_file=None,
+                 output_file=None,
+                 write_to_files=False,
                  success_return_code=0):
-    if solc_binary is None:
-        solc_binary = get_solcjs_binary_path()
 
-    command = [solc_binary]
+    config = load_config()
 
-    if help:
-        command.append('--help')
+    if node_binary is None:
+        node_binary = get_node_binary_path()
 
-    if version:
-        command.append('--version')
+    command = [node_binary, "-e"]
 
-    if add_std:
-        command.append('--add-std')
+    with open(get_compile_script_path(), "r") as script_file:
+        script = script_file.read()
 
-    if optimize:
-        command.append('--optimize')
+    if compilation_version:
+        script = "version = '{0}';".format(compilation_version) + script
 
-    if optimize_runs is not None:
-        command.extend(('--optimize-runs', str(optimize_runs)))
+    if write_to_files:
+        input_json = input_file or config["inputFile"]
+        with open(input_json, "w+") as f:
+            json.dump(stdin, f)
 
-    if link:
-        command.append('--link')
+    script = "var input_json = {0};".format(json.dumps(stdin)) + script
+    command.append(script)
 
-    if libraries is not None:
-        command.extend(('--libraries', libraries))
-
-    if output_dir is not None:
-        command.extend(('--output-dir', output_dir))
-
-    if combined_json:
-        command.extend(('--combined-json', combined_json))
-
-    if gas:
-        command.append('--gas')
-
-    if allow_paths:
-        command.extend(('--allow-paths', allow_paths))
-
-    if standard_json:
-        command.append('--standard-json')
-
-    if assemble:
-        command.append('--assemble')
-
-    if import_remappings is not None:
-        command.extend(import_remappings)
-
-    if source_files is not None:
-        command.extend(source_files)
-
-    #
-    # Output configuration
-    #
-    if ast:
-        command.append('--ast')
-
-    if ast_json:
-        command.append('--ast-json')
-
-    if asm:
-        command.append('--asm')
-
-    if asm_json:
-        command.append('--asm-json')
-
-    if opcodes:
-        command.append('--opcodes')
-
-    if bin:
-        command.append('--bin')
-
-    if bin_runtime:
-        command.append('--bin-runtime')
-
-    if clone_bin:
-        command.append('--clone-bin')
-
-    if abi:
-        command.append('--abi')
-
-    if interface:
-        command.append('--interface')
-
-    if hashes:
-        command.append('--hashes')
-
-    if userdoc:
-        command.append('--userdoc')
-
-    if devdoc:
-        command.append('--devdoc')
-
-    if formal:
-        command.append('--formal')
-
-    if stdin is not None:
-        # solc seems to expects utf-8 from stdin:
-        # see Scanner class in Solidity source
-        stdin = force_bytes(stdin, 'utf8')
-
-    proc = subprocess.Popen(command,
-                            stdin=subprocess.PIPE,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
-
-    stdoutdata, stderrdata = proc.communicate(stdin)
+    proc = subprocess.run(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
+    )
 
     if proc.returncode != success_return_code:
         raise SolcError(
             command=command,
             return_code=proc.returncode,
             stdin_data=stdin,
-            stdout_data=stdoutdata,
-            stderr_data=stderrdata,
+            stdout_data=proc.stdout,
+            stderr_data=proc.stderr,
         )
 
-    return stdoutdata, stderrdata, command, proc
+    if write_to_files:
+        output_file = output_file or config["outputFile"]
+        with open(output_file, "w+") as f:
+            f.write(proc.stdout.decode('utf-8'))
+
+    return proc.stdout, proc.stderr, command, proc

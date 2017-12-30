@@ -1,5 +1,6 @@
 import os
 
+
 def ensure_path_exists(dir_path):
     """
     Make sure that a path exists
@@ -8,6 +9,7 @@ def ensure_path_exists(dir_path):
         os.makedirs(dir_path)
         return True
     return False
+
 
 def is_executable_available(program):
     def is_exe(fpath):
